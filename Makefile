@@ -1,4 +1,4 @@
-NAME	=	Pestillence
+NAME	=	Pestilence
 SRCS	=	main.asm
 OBJS	=	$(SRCS:.asm=.o)
 CC		=	gcc
