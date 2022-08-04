@@ -62,8 +62,8 @@ uint8_t			*mem = NULL;
 char	*get_name(char *line, uint64_t size) {
 	uint64_t		i;
 
-	for (; size && *line != ' ' && *line != '\t'; ++line, --size);
-	for (; size && (*line == ' ' || *line == '\t'); ++line, --size);
+	for (; size && *line != '\t'; ++line, --size);
+	for (; size && *line == '\t'; ++line, --size);
 	for (i = 0; i < size; ++i) {
 		if (line[i] == '\n') {
 			line[i] = '\0';
