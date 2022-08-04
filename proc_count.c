@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/08/03 16:45:55 by fcadet            #+#    #+#             */
-/*   Updated: 2022/08/04 15:00:51 by fcadet           ###   ########.fr       */
+/*   Updated: 2022/08/04 15:03:14 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,8 @@ int		find_txt_seg(void);
 int		set_x_pad(void);
 void	update_mem(void);
 void	write_mem(uint8_t *path);
+int		str_n_cmp(char *s1, char *s2, int n);
+void	get_full_path(char *s1, char *s2, uint8_t *buff);
 
 typedef struct		s_hdrs {
 	Elf64_Ehdr		*elf;
@@ -57,14 +59,6 @@ t_buffs			buffs = { 0 };
 t_hdrs			hdrs = { 0 };
 uint8_t			*mem = NULL;
 
-void	get_full_path(char *s1, char *s2, uint8_t *buff) {
-	for (; *s1; ++s1, ++buff)
-		*buff = *s1;
-	for (; *s2; ++s2, ++buff)
-		*buff = *s2;
-	*buff = '\0';
-}
-
 char	*get_name(char *line, uint64_t size) {
 	uint64_t		i;
 
@@ -77,11 +71,6 @@ char	*get_name(char *line, uint64_t size) {
 		}
 	}
 	return (i == size ? NULL : line);
-}
-
-int		str_n_cmp(char *s1, char *s2, int n) {
-	for (; *s1 && *s1 == *s2 && --n; ++s1, ++s2);
-	return (*s1 - *s2);
 }
 
 static int		proc_entries(uint8_t *ent_ptr, char *root_path) {
