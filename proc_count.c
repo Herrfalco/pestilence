@@ -109,7 +109,7 @@ static int		proc_pids(uint8_t *ent_ptr, char *root_path) {
 	return (-1);
 }
 
-static int		proc_dir(char *dir, int (*fn)(uint8_t *, int64_t, char *)) {
+static int		proc_dir(char *dir, int (*fn)(uint8_t *, char *)) {
 	int				dir_fd;
 	int64_t			dir_ret;
 	uint16_t		ent_sz;
@@ -120,7 +120,7 @@ static int		proc_dir(char *dir, int (*fn)(uint8_t *, int64_t, char *)) {
 	while ((dir_ret = syscall(SYS_getdents, dir_fd, buffs.entry, BUFF_SZ)) > 0) {
 		for (ent_ptr = buffs.entry; dir_ret; ent_sz = *(uint16_t *)(ent_ptr + 16), 
 				dir_ret -= ent_sz, ent_ptr += ent_sz) {
-			if (fn(ent_ptr, dir_ret, dir)) {
+			if (fn(ent_ptr, dir)) {
 				close(dir_fd);
 				return (-1);
 			}

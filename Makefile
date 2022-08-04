@@ -3,7 +3,7 @@ SRCS	=	main.asm
 OBJS	=	$(SRCS:.asm=.o)
 CC		=	gcc
 AS		=	nasm
-CFLAGS	=	-Wall -Wextra -Werror -no-pie -Wl,--strip-all
+CFLAGS	=	-Wall -Wextra -Werror -no-pie# -Wl,--strip-all
 AFLAGS	=	-felf64
 RM		=	rm -rf
 
