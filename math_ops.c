@@ -27,7 +27,6 @@ int		junk_ops(int i, int j, int *ops, uint64_t rand) {
 		lol += i;
 		useless -= i;
 		lol -= rand;
-		lol -= i;
 		if (count == 1) {
 			*ops = usefull;
 			return (0);
