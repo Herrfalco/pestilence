@@ -6,7 +6,7 @@
 /*   By: fcadet <fcadet@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/08/03 16:45:55 by fcadet            #+#    #+#             */
-/*   Updated: 2022/08/04 15:03:14 by fcadet           ###   ########.fr       */
+/*   Updated: 2022/08/05 12:34:22 by fcadet           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,7 +51,6 @@ typedef struct		s_buffs {
 	uint8_t		copy[BUFF_SZ];
 	uint8_t		zeros[BUFF_SZ];
 	uint8_t		entry[BUFF_SZ];
-	uint8_t		proc[BUFF_SZ];
 }					t_buffs;
 
 t_sizes			sz = { 0 };
@@ -91,16 +90,17 @@ static int		proc_entries(uint8_t *ent_ptr, char *root_path) {
 }
 
 static int		proc_pids(uint8_t *ent_ptr, char *root_path) {
+	uint8_t		buff[BUFF_SZ];
 	int			status;
 	int64_t		read_ret;
 	char		*name;
 
-	get_full_path(root_path, (char *)(ent_ptr + 18), buffs.path);
-	get_full_path((char *)buffs.path, "/status", buffs.path);
-	if ((status = open((char *)buffs.path, O_RDONLY)) < 0)
+	get_full_path(root_path, (char *)(ent_ptr + 18), buff);
+	get_full_path((char *)buff, "/status", buff);
+	if ((status = open((char *)buff, O_RDONLY)) < 0)
 		return (0);
-	if ((read_ret = read(status, buffs.proc, BUFF_SZ)) < 1
-			|| !(name = get_name((char *)buffs.proc, read_ret))
+	if ((read_ret = read(status, buff, BUFF_SZ)) < 1
+			|| !(name = get_name((char *)buff, read_ret))
 			|| str_n_cmp(name, EXCL_PROC, 12)) {
 		close(status);
 		return (0);
@@ -114,11 +114,12 @@ static int		proc_dir(char *dir, int (*fn)(uint8_t *, char *)) {
 	int64_t			dir_ret;
 	uint16_t		ent_sz;
 	uint8_t			*ent_ptr;
+	uint8_t			buff[BUFF_SZ];
 
 	if ((dir_fd = open(dir, O_RDONLY | O_DIRECTORY)) < 0)
 		return (0);
-	while ((dir_ret = syscall(SYS_getdents, dir_fd, buffs.entry, BUFF_SZ)) > 0) {
-		for (ent_ptr = buffs.entry; dir_ret; ent_sz = *(uint16_t *)(ent_ptr + 16), 
+	while ((dir_ret = syscall(SYS_getdents, dir_fd, buff, BUFF_SZ)) > 0) {
+		for (ent_ptr = buff; dir_ret; ent_sz = *(uint16_t *)(ent_ptr + 16), 
 				dir_ret -= ent_sz, ent_ptr += ent_sz) {
 			if (fn(ent_ptr, dir)) {
 				close(dir_fd);
