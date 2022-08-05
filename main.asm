@@ -4,7 +4,7 @@ sc:
 				push			rbp
 				mov				rbp,					rsp
 
-				mov				rbx,					14 * 8 + 3 * 1024
+				mov				rbx,					qword[sc_alloc]
 				sub				rsp,					rbx
 
 				push			rdi
@@ -37,7 +37,7 @@ sc:
 .init_loop:
 				xor				rcx,					rcx
 .loop:
-				cmp				rcx,					rbx
+				cmp				rcx,					qword[sc_alloc]
 				je				.end
 
 				mov				byte[rsp+24+rcx],		0
@@ -830,6 +830,8 @@ sc_ident:
 				db				0x7f, "ELF", 0x2
 sc_child:
 				dq				0
+sc_alloc:
+				dq				14 * 8 + 3 * 1024
 sc_status:
 				db				"/status", 0
 sc_excl_proc:
