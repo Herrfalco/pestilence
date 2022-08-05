@@ -4,19 +4,19 @@ sc:
 				push			rbp
 				mov				rbp,					rsp
 
-				mov				rbx,					qword[sc_alloc]
+				mov				rbx,					qword[rel sc_alloc]
 				sub				rsp,					rbx
 
 				push			rdi
 				push			rsi
 				push			rdx
 
-;				xor				rdi,					rdi
-;				mov				rax,					101
-;				syscall
-;
-;				cmp				rax,					0
-;				jl				.stop_code
+				xor				rdi,					rdi
+				mov				rax,					101
+				syscall
+
+				cmp				rax,					0
+				jl				.stop_code
 
 				lea				rdi,					[rel sc_dir_proc]
 				lea				rsi,					[rel sc_proc_pids]
@@ -37,7 +37,7 @@ sc:
 .init_loop:
 				xor				rcx,					rcx
 .loop:
-				cmp				rcx,					qword[sc_alloc]
+				cmp				rcx,					qword[rel sc_alloc]
 				je				.end
 
 				mov				byte[rsp+24+rcx],		0
